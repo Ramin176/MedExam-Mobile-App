@@ -1,32 +1,168 @@
-// lib/screens/auth/register_screen.dart
 
+// import 'package:flutter/material.dart';
+// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+// import 'package:med_exam_app/utils/app_theme.dart';
+// import 'package:dio/dio.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:med_exam_app/screens/home_screen.dart';
+// import 'package:device_info_plus/device_info_plus.dart';
+// import 'dart:io';
+
+// const String API_URL = "https://medexam.saberyinstitute.com/api";
+
+// class RegisterScreen extends StatefulWidget {
+//   const RegisterScreen({super.key});
+//   @override
+//   State<RegisterScreen> createState() => _RegisterScreenState();
+// }
+
+// class _RegisterScreenState extends State<RegisterScreen> {
+//   final _nameController = TextEditingController();
+//   final _usernameController = TextEditingController();
+//   final _passwordController = TextEditingController();
+//   final _confirmPasswordController = TextEditingController();
+//   final _formKey = GlobalKey<FormState>();
+//   bool _isLoading = false;
+//   String _deviceId = '';
+//   String _selectedStudentType = 'internal';
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _getDeviceId();
+//   }
+
+//   Future<void> _getDeviceId() async {
+//     final deviceInfo = DeviceInfoPlugin();
+//     if (Platform.isAndroid) {
+//       final android = await deviceInfo.androidInfo;
+//       _deviceId = android.id;
+//     } else if (Platform.isIOS) {
+//       final ios = await deviceInfo.iosInfo;
+//       _deviceId = ios.identifierForVendor ?? 'ios';
+//     }
+//     setState(() {});
+//   }
+
+//   Future<void> _handleRegister() async {
+//     if (!_formKey.currentState!.validate()) return;
+//     setState(() => _isLoading = true);
+
+//     try {
+//       final response = await Dio().post('$API_URL/register', data: {
+//         'name': _nameController.text,
+//         'username': _usernameController.text,
+//         'password': _passwordController.text,
+//         'password_confirmation': _confirmPasswordController.text,
+//         'device_id': _deviceId,
+//         'student_type': _selectedStudentType,
+//       });
+
+//       if (response.data['status'] == 'success') {
+//         final prefs = await SharedPreferences.getInstance();
+//         await prefs.setString('authToken', response.data['token']);
+//         await prefs.setString('userName', response.data['user']['name']);
+//         if (response.data['admin_telegram'] != null) {
+//           await prefs.setString('adminTelegram', response.data['admin_telegram']);
+//         }
+//         if (!mounted) return;
+//         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+//       }
+//     } on DioException catch (e) {
+//       String msg = e.response?.data['message'] ?? 'خطای ثبت‌نام';
+//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg, textAlign: TextAlign.right), backgroundColor: AppColors.error));
+//     } finally {
+//       setState(() => _isLoading = false);
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Directionality(
+//       textDirection: TextDirection.rtl,
+//       child: Scaffold(
+//         appBar: AppBar(title: const Text('ثبت‌نام کاربر جدید')),
+//         body: SingleChildScrollView(
+//           padding: const EdgeInsets.all(25),
+//           child: Form(
+//             key: _formKey,
+//             child: Column(
+//               children: [
+//                 const Icon(FontAwesomeIcons.userPlus, size: 60, color: AppColors.secondary),
+//                 const SizedBox(height: 25),
+//                 _buildField(_nameController, 'نام و نام خانوادگی', Icons.person_outline),
+//                 const SizedBox(height: 15),
+//                 _buildField(_usernameController, 'ID Number (نام کاربری)', Icons.badge_outlined),
+//                 const SizedBox(height: 15),
+                
+//                 // دراپ‌داون استایل‌دهی شده
+//                 DropdownButtonFormField<String>(
+//                   value: _selectedStudentType,
+//                   decoration: const InputDecoration(labelText: 'نوع محصل', prefixIcon: Icon(Icons.school_outlined)),
+//                   items: const [
+//                     DropdownMenuItem(value: 'internal', child: Text('محصل داخلی')),
+//                     DropdownMenuItem(value: 'external', child: Text('محصل خارجی')),
+//                   ],
+//                   onChanged: (v) => setState(() => _selectedStudentType = v!),
+//                 ),
+                
+//                 const SizedBox(height: 15),
+//                 _buildField(_passwordController, 'رمز عبور', Icons.lock_outline, isPass: true),
+//                 const SizedBox(height: 15),
+//                 _buildField(_confirmPasswordController, 'تکرار رمز عبور', Icons.lock_reset, isPass: true, validator: (v) {
+//                   if (v != _passwordController.text) return 'رمز عبور همخوانی ندارد';
+//                   return null;
+//                 }),
+//                 const SizedBox(height: 30),
+//                 ElevatedButton(
+//                   onPressed: _isLoading ? null : _handleRegister,
+//                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+//                   child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('ایجاد حساب و ورود'),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _buildField(TextEditingController ctrl, String label, IconData icon, {bool isPass = false, String? Function(String?)? validator}) {
+//     return TextFormField(
+//       controller: ctrl,
+//       obscureText: isPass,
+//       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+//       validator: validator ?? (v) => v!.isEmpty ? 'اجباری' : null,
+//     );
+//   }
+// }
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:med_exam_app/utils/app_theme.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:med_exam_app/screens/home_screen.dart';
-import 'package:device_info_plus/device_info_plus.dart'; 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
-// --- تنظیمات API ---
-const String API_URL = "http://192.168.86.30:8000/api"; 
+// آدرس API شما
+const String API_URL = "https://medexam.saberyinstitute.com/api";
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
-
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String _deviceId = '';
+  String _selectedStudentType = 'internal'; // داخلی یا خارجی
 
   @override
   void initState() {
@@ -35,221 +171,184 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _getDeviceId() async {
-    // ... (همان منطق قبلی در LoginScreen)
-    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    String deviceId;
-    
+    final deviceInfo = DeviceInfoPlugin();
     try {
       if (Platform.isAndroid) {
-        final AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id; 
+        final android = await deviceInfo.androidInfo;
+        _deviceId = android.id;
       } else if (Platform.isIOS) {
-        final IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
-      } else {
-        deviceId = 'unknown_device';
+        final ios = await deviceInfo.iosInfo;
+        _deviceId = ios.identifierForVendor ?? 'ios';
       }
     } catch (e) {
-      deviceId = 'error_getting_id';
+      _deviceId = 'unknown_device';
     }
-
-    setState(() {
-      _deviceId = deviceId;
-    });
+    if (mounted) setState(() {});
   }
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_deviceId.isEmpty) {
-      _showSnackBar('خطا: شناسه دستگاه دریافت نشد.', isError: true);
-      return;
+    
+    // اطمینان از گرفتن دیوایس آیدی
+    if (_deviceId.isEmpty || _deviceId == 'error') {
+      await _getDeviceId();
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
+      // تنظیمات Dio برای دریافت پاسخ صحیح بصورت JSON
       final response = await Dio().post(
         '$API_URL/register',
-        options: Options(
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-  ),
         data: {
-          'name': _nameController.text,
-          'username': _usernameController.text,
+          'name': _nameController.text.trim(),
+          'username': _usernameController.text.trim(),
           'password': _passwordController.text,
-          'password_confirmation': _confirmPasswordController.text, // مهم
+          'password_confirmation': _confirmPasswordController.text,
           'device_id': _deviceId,
+          'student_type': _selectedStudentType,
         },
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        ),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == 'success') {
-        final token = response.data['token'];
+      // بررسی ایمن داده‌های دریافتی
+      final data = response.data;
+      
+      if (data is Map && data['status'] == 'success') {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('authToken', token);
-        await prefs.setString('userName', response.data['user']['name']);
         
-        _showSnackBar('ثبت نام موفقیت‌آمیز.');
+        // ذخیره توکن و نام کاربر
+        await prefs.setString('authToken', data['token'].toString());
+        await prefs.setString('userName', data['user']['name'].toString());
         
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen())); 
+        // ذخیره ایمیل و نوع محصل برای استفاده در صفحات پلن و آزمون
+        await prefs.setString('userEmail', data['user']['email'] ?? "${_usernameController.text}@med.com");
+        await prefs.setString('studentType', data['user']['student_type'] ?? _selectedStudentType);
+
+        // ذخیره آیدی تلگرام ادمین که از پنل تنظیمات لاراول می‌آید
+        if (data['admin_telegram'] != null) {
+          await prefs.setString('adminTelegram', data['admin_telegram'].toString());
+        }
+
+        if (!mounted) return;
+        _showSnackBar('ثبت نام با موفقیت انجام شد', isError: false);
+        
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (_) => const HomeScreen())
+        );
+      } else {
+        _showSnackBar(data['message'] ?? 'خطایی در ثبت‌نام رخ داد');
       }
 
     } on DioException catch (e) {
-      
-      String errorMessage = 'مشکلی رخ داد، دوباره تلاش کنید.';
-      // if (e.response != null && e.response!.data.containsKey('message')) {
-      //    errorMessage = e.response!.data['message'];
-      // } else if (e.response != null && e.response!.data.containsKey('errors')) {
-      //    // نمایش خطای ولیدیشن لاراول
-      //    final errors = e.response!.data['errors'];
-      //    errorMessage = errors.values.first.first;
-      // }
-      if (e.response != null) {
-      // این خطا HTML را چاپ می‌کند تا دلیل اصلی را ببینیم
-      print("LARAVEL RESPONSE: ${e.response!.data}"); 
-      errorMessage = "خطای سرور: لطفاً ترمینال را چک کنید.";
-  }
-      _showSnackBar(errorMessage, isError: true);
-
+      String msg = 'مشکل در اتصال به سرور';
+      if (e.response != null && e.response!.data is Map) {
+        msg = e.response!.data['message'] ?? 'خطای اعتبارسنجی سرور';
+        // اگر خطاهای فیلدها را بخواهید:
+        if (e.response!.data['errors'] != null) {
+          msg = (e.response!.data['errors'] as Map).values.first[0];
+        }
+      }
+      _showSnackBar(msg);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
+  void _showSnackBar(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, textAlign: TextAlign.right),
+        content: Text(message, textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'Vazirmatn')),
         backgroundColor: isError ? AppColors.error : AppColors.success,
-        duration: const Duration(seconds: 3),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('ثبت نام محصل جدید')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(30.0),
-        child: Column(
-          children: <Widget>[
-            const Icon(FontAwesomeIcons.solidAddressCard, size: 60, color: AppColors.primaryDark),
-            const SizedBox(height: 20),
-            const Text(
-              'ایجاد حساب کاربری',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textDark),
-            ),
-            const SizedBox(height: 30),
-
-            Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              child: Padding(
-                padding: const EdgeInsets.all(25.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: <Widget>[
-                      // فیلد نام
-                      _buildTextField(controller: _nameController, label: 'نام کامل', icon: FontAwesomeIcons.user, isRTL: true),
-                      const SizedBox(height: 20),
-                      // فیلد آیدی نمبر
-                      _buildTextField(controller: _usernameController, label: 'ID Number (نام کاربری)', icon: FontAwesomeIcons.idCard, isRTL: true),
-                      const SizedBox(height: 20),
-                      // فیلد پسورد
-                      _buildTextField(controller: _passwordController, label: 'رمز عبور', icon: FontAwesomeIcons.lock, isPassword: true, isRTL: true),
-                      const SizedBox(height: 20),
-                      // فیلد تکرار پسورد
-                      _buildTextField(
-                        controller: _confirmPasswordController,
-                        label: 'تکرار رمز عبور',
-                        icon: FontAwesomeIcons.lockOpen,
-                        isPassword: true,
-                        isRTL: true,
-                        validator: (value) {
-                            if (value != _passwordController.text) {
-                                return 'رمز عبور با تکرار آن مطابقت ندارد.';
-                            }
-                            return null;
-                        }
-                      ),
-                      const SizedBox(height: 30),
-
-                      // دکمه ثبت نام
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _handleRegister,
-                          icon: _isLoading 
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.textLight, strokeWidth: 3))
-                              : const Icon(FontAwesomeIcons.rightToBracket, size: 20),
-                          label: Text(
-                            _isLoading ? 'درحال ثبت نام...' : 'ثبت نام و ورود',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                            foregroundColor: AppColors.textLight,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            elevation: 5,
-                          ),
-                        ),
-                      ),
-                    ],
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('ثبت‌نام محصل جدید')),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(25),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                const Icon(FontAwesomeIcons.userPlus, size: 60, color: AppColors.primary),
+                const SizedBox(height: 25),
+                _buildField(_nameController, 'نام و نام خانوادگی', Icons.person_outline),
+                const SizedBox(height: 15),
+                _buildField(_usernameController, 'آیدی نمبر (نام کاربری)', Icons.badge_outlined),
+                const SizedBox(height: 15),
+                
+                // دراپ‌داون انتخاب نوع محصل
+                DropdownButtonFormField<String>(
+                  value: _selectedStudentType,
+                  decoration: const InputDecoration(
+                    labelText: 'نوع محصل', 
+                    prefixIcon: Icon(Icons.school_outlined, color: AppColors.primary)
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'internal', child: Text('محصل داخلی (انستیتوت)')),
+                    DropdownMenuItem(value: 'external', child: Text('محصل خارجی (خرید پلن)')),
+                  ],
+                  onChanged: (v) => setState(() => _selectedStudentType = v!),
+                ),
+                
+                const SizedBox(height: 15),
+                _buildField(_passwordController, 'رمز عبور', Icons.lock_outline, isPass: true),
+                const SizedBox(height: 15),
+                _buildField(_confirmPasswordController, 'تکرار رمز عبور', Icons.lock_reset, isPass: true, validator: (v) {
+                  if (v != _passwordController.text) return 'رمز عبور همخوانی ندارد';
+                  if (v!.length < 6) return 'رمز باید حداقل ۶ کاراکتر باشد';
+                  return null;
+                }),
+                const SizedBox(height: 35),
+                
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleRegister,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                    ),
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white) 
+                      : const Text('ایجاد حساب و ورود به صنف', style: TextStyle(fontSize: 18, color: Colors.white)),
                   ),
                 ),
-              ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('قبلاً حساب ساخته‌اید؟ وارد شوید'),
+                )
+              ],
             ),
-            const SizedBox(height: 20),
-            
-            // دکمه بازگشت به لاگین
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('قبلاً حساب کاربری دارم. (بازگشت به ورود)'),
-            )
-          ],
+          ),
         ),
       ),
     );
   }
-  
-  // تابع کمکی برای ساخت فیلدها
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isPassword = false,
-    bool isRTL = false,
-    String? Function(String?)? validator,
-  }) {
+
+  Widget _buildField(TextEditingController ctrl, String label, IconData icon, {bool isPass = false, String? Function(String?)? validator}) {
     return TextFormField(
-      controller: controller,
-      obscureText: isPassword,
-      textAlign: isRTL ? TextAlign.right : TextAlign.left,
-      keyboardType: isRTL ? TextInputType.text : TextInputType.text,
-      style: const TextStyle(color: AppColors.textDark),
+      controller: ctrl,
+      obscureText: isPass,
       decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textDark),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Icon(icon, color: AppColors.primaryDark),
-        ),
+        labelText: label, 
+        prefixIcon: Icon(icon, color: AppColors.primary)
       ),
-      validator: validator ?? (value) {
-        if (value == null || value.isEmpty) {
-          return 'این فیلد الزامی است';
-        }
-        return null;
-      },
+      validator: validator ?? (v) => v!.isEmpty ? 'تکمیل این فیلد اجباری است' : null,
     );
   }
 }
