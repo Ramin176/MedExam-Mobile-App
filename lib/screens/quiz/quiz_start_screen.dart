@@ -243,8 +243,10 @@ import 'package:med_exam_app/screens/quiz/quiz_screen.dart';
 import 'package:med_exam_app/utils/app_theme.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 const String API_URL ="https://medexam.saberyinstitute.com/api";
+// const String API_URL = "http://192.168.173.30:8000/api"; 
 
 class QuizStartScreen extends StatefulWidget {
   final Topic topic;
@@ -258,29 +260,196 @@ class _QuizStartScreenState extends State<QuizStartScreen> {
   bool _isLoading = false;
   bool _isPracticeMode = false;
 
-  Future<void> _fetchQuestions({String? password}) async {
-    setState(() { _isLoading = true; });
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('authToken');
-      if (token == null) return;
-      Map<String, dynamic> queryParams = {};
-      if (password != null && password.isNotEmpty) { queryParams['password'] = password; }
-      final response = await Dio().get('$API_URL/questions/${widget.topic.id}', queryParameters: queryParams, options: Options(headers: {'Authorization': 'Bearer $token'}));
 
-      if (response.statusCode == 200) {
-          final bool isPracticeFromServer = response.data['is_practice'] ?? false;
-          final topicData = response.data['topic']; 
-          final List<dynamic> questionsJson = topicData['questions'];
-          final List<Question> questionsList = questionsJson.map((json) => Question.fromJson(json)).toList();
-          if (!mounted) return;
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuizScreen(topic: Topic.fromJson(topicData), questions: questionsList, isPractice: isPracticeFromServer)));
-      }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 403) { setState(() { _isPracticeMode = true; }); }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.response?.data['message'] ?? 'خطا', textAlign: TextAlign.right), backgroundColor: AppColors.error));
-    } finally { setState(() { _isLoading = false; }); }
+  void _showRenewalDialog(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+    ),
+    builder: (ctx) => Directionality(
+      textDirection: TextDirection.rtl,
+      child: Padding(
+        padding: const EdgeInsets.all(25),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+              child: const Icon(Icons.timer_off_outlined, color: Colors.orange, size: 35),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "اشتراک شما به پایان رسیده است",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+            ),
+            const SizedBox(height: 15),
+            const Text(
+              "برای دسترسی مجدد به بانک سوالات، آزمون‌های جامع رندوم و مطالب آموزشی جدید، لطفاً پلن خود را تمدید کنید.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: AppColors.textGrey, height: 1.6),
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  // هدایت به صفحه خرید پلن (باید لیست پلن‌ها را دوباره بگیریم یا به صفحه اصلی برگردیم)
+                  Navigator.of(context).popUntil((route) => route.isFirst); 
+                  // راهنمایی: چون پلن‌ها در صفحه اصلی لود می‌شوند، کاربر را به خانه برمی‌گردانیم
+                },
+                child: const Text("مشاهده پلن‌های تمدید اشتراک"),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("بعداً", style: TextStyle(color: Colors.grey)),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+Future<void> _fetchQuestions({String? password}) async {
+  final box = await Hive.openBox<Question>('offline_questions_${widget.topic.id}');
+  
+  // ۱. اگر رمزی وارد نشده و سوالات در گوشی موجود است -> مستقیم برو حالت تمرین (آفلاین)
+  if ((password == null || password.isEmpty) && box.isNotEmpty) {
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(builder: (_) => QuizScreen(
+        topic: widget.topic, 
+        questions: box.values.toList(), 
+        isPractice: true 
+      ))
+    );
+    return;
   }
+
+  // ۲. اگر رمز وارد شده یا سوالات در گوشی نیست -> باید به سرور وصل شود
+  setState(() => _isLoading = true);
+
+  try {
+    // چک کردن اتصال اینترنت
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity == ConnectivityResult.none && box.isEmpty) {
+      _showSnackBar("شما آفلاین هستید و این درس قبلاً دانلود نشده است.", isError: true);
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+
+    final response = await Dio().get(
+      "$API_URL/questions/${widget.topic.id}",
+      queryParameters: password != null ? {'password': password} : {},
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+
+    if (response.statusCode == 200) {
+      final bool isPractice = response.data['is_practice'] ?? false;
+      final List<dynamic> questionsJson = response.data['topic']['questions'];
+      final List<Question> questionsList = questionsJson.map((j) => Question.fromJson(j)).toList();
+
+      // آپدیت کردن دیتای آفلاین با سوالات جدید سرور
+      await box.clear();
+      await box.addAll(questionsList);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (_) => QuizScreen(
+          topic: widget.topic, 
+          questions: questionsList, 
+          isPractice: isPractice
+        ))
+      );
+    }
+  } on DioException catch (e) {
+      if (e.response?.statusCode == 403 && e.response?.data['message'].contains('منقضی')) {
+    _showRenewalDialog(context); // نمایش دیالوگ تمدید
+  } else {
+    String msg = e.response?.data['message'] ?? "خطا در اتصال به سرور";
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg, textAlign: TextAlign.right)));
+  }
+    String msg = e.response?.data['message'] ?? "خطا در اتصال به سرور";
+    if (e.response?.statusCode == 403) setState(() => _isPracticeMode = true);
+    _showSnackBar(msg, isError: true);
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
+// تابع کمکی برای نمایش پیغام
+void _showSnackBar(String message, {bool isError = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message, textAlign: TextAlign.right),
+      backgroundColor: isError ? AppColors.error : AppColors.success,
+    ),
+  );
+}
+  
+// Future<void> _fetchQuestions({String? password}) async {
+//     setState(() => _isLoading = true);
+//     final box = await Hive.openBox<Question>('offline_questions_${widget.topic.id}');
+//      if (box.isNotEmpty) {
+//     // اگر سوالات در گوشی هست، مستقیم برو به صفحه آزمون
+//     Navigator.pushReplacement(
+//       context, 
+//       MaterialPageRoute(builder: (_) => QuizScreen(
+//         topic: widget.topic, 
+//         questions: box.values.toList(), 
+//         isPractice: true // در حالت آفلاین همیشه تمرین است مگر اینکه قبلا رمز زده شده باشد
+//       ))
+//     );
+//     return;
+//   }
+  
+//     // ۱. چک کردن حالت آفلاین
+//     if (box.isNotEmpty && password == null) {
+//       setState(() => _isLoading = false);
+//       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => QuizScreen(topic: widget.topic, questions: box.values.toList(), isPractice: true)));
+//       return;
+//     }
+
+//     // ۲. اتصال به سرور با امنیت کامل
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       final token = prefs.getString('authToken');
+
+//       final response = await Dio().get(
+//         "$API_URL/questions/${widget.topic.id}",
+//         queryParameters: password != null ? {'password': password} : {}, // ارسال رمز به سرور
+//         options: Options(headers: {'Authorization': 'Bearer $token'}), // ارسال توکن محصل
+//       );
+
+//       if (response.statusCode == 200) {
+//         final bool isPractice = response.data['is_practice'] ?? false;
+//         final List<dynamic> questionsJson = response.data['topic']['questions'];
+//         final List<Question> questionsList = questionsJson.map((j) => Question.fromJson(j)).toList();
+
+//         // ذخیره برای استفاده آفلاین بعدی
+//         await box.clear();
+//         await box.addAll(questionsList);
+
+//         if (!mounted) return;
+//         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => QuizScreen(topic: widget.topic, questions: questionsList, isPractice: isPractice)));
+//       }
+//     } on DioException catch (e) {
+//       String msg = e.response?.data['message'] ?? "خطا در اتصال به سرور";
+//       if (e.response?.statusCode == 403) setState(() => _isPracticeMode = true);
+//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg, textAlign: TextAlign.right), backgroundColor: AppColors.error));
+//     } finally {
+//       setState(() => _isLoading = false);
+//     }
+//   }
 
   @override
   Widget build(BuildContext context) {

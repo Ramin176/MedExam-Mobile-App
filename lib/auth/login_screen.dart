@@ -275,6 +275,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:med_exam_app/auth/register_screen.dart';
 import 'package:med_exam_app/screens/home_screen.dart';
+import 'package:med_exam_app/screens/auth/forgot_password_screen.dart';
 import 'package:med_exam_app/utils/app_theme.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -282,6 +283,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
 const String API_URL = "https://medexam.saberyinstitute.com/api";
+// const String API_URL = "http://192.168.173.30:8000/api"; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -381,6 +383,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: _isLoading ? null : _handleLogin,
                             child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('ورود به سیستم'),
                           ),
+                           const SizedBox(height: 30),
+                          TextButton(
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                              child: const Text('رمز عبور را فراموش کرده‌اید؟', style: TextStyle(color: Colors.grey)),
+                            ),
                         ],
                       ),
                     ),

@@ -82,12 +82,12 @@ final ThemeData appTheme = ThemeData(
     ),
   ),
 
-  cardTheme: CardTheme(
-    color: AppColors.surface,
-    elevation: 2,
-    shadowColor: Colors.black12,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-  ),
+ cardTheme: CardThemeData(
+  color: AppColors.surface,
+  elevation: 2,
+  shadowColor: Colors.black12,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+),
 
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(

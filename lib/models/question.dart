@@ -23,6 +23,8 @@ class Question {
   final String correctAnswer; 
   @HiveField(8)
   final String type; 
+  @HiveField(9)
+  final String? explanation; // فیلد جدید اضافه شد
 
   Question({
     required this.id,
@@ -34,6 +36,7 @@ class Question {
     required this.optionD,
     required this.correctAnswer,
     required this.type,
+     this.explanation,
   });
 
   // متد جادویی برای نمایش عکس از هاستینگر
@@ -41,9 +44,17 @@ class Question {
     if (image == null || image!.isEmpty) return null;
     // لینک هاست شما + مسیر استوریج
     return "https://medexam.saberyinstitute.com/storage/$image";
+    //  return "http://127.0.0.1:8000/storage/$image"; // آدرس سرور شما
   }
   
+ 
   factory Question.fromJson(Map<String, dynamic> json) {
+    // تابعی برای پاک کردن تگ‌های HTML
+    String stripHtml(String htmlString) {
+      RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
+      return htmlString.replaceAll(exp, '').trim();
+    }
+
     return Question(
       id: json['id'],
       questionText: json['question_text'],
@@ -54,6 +65,8 @@ class Question {
       optionD: json['option_d'] ?? '',
       correctAnswer: json['correct_answer'] ?? '',
       type: json['type'] ?? 'mcq',
+      // اگر توضیحات تگ HTML داشت، آن را پاک کن
+      explanation: json['explanation'] != null ? stripHtml(json['explanation']) : null,
     );
   }
 }

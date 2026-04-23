@@ -142,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 25),
             const Text(
-              'سیستم آزمون هوشمند',
+              'سیستم آزمون پرتو',
               style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
             const SizedBox(height: 10),

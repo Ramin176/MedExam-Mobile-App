@@ -20,19 +20,22 @@ class SubjectAdapter extends TypeAdapter<Subject> {
       id: fields[0] as int,
       name: fields[1] as String,
       topics: (fields[2] as List).cast<Topic>(),
+      lectures: (fields[3] as List).cast<Lecture>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Subject obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.topics);
+      ..write(obj.topics)
+      ..writeByte(3)
+      ..write(obj.lectures);
   }
 
   @override
@@ -61,16 +64,15 @@ class StudentClassAdapter extends TypeAdapter<StudentClass> {
       name: fields[1] as String,
       semesterPrice: fields[2] as String,
       monthlyPrice: fields[3] as String,
-      startDate: fields[4] as DateTime,
-      endDate: fields[5] as DateTime,
-      subjects: (fields[6] as List).cast<Subject>(),
+      endDate: fields[4] as DateTime,
+      subjects: (fields[5] as List).cast<Subject>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, StudentClass obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -80,10 +82,8 @@ class StudentClassAdapter extends TypeAdapter<StudentClass> {
       ..writeByte(3)
       ..write(obj.monthlyPrice)
       ..writeByte(4)
-      ..write(obj.startDate)
-      ..writeByte(5)
       ..write(obj.endDate)
-      ..writeByte(6)
+      ..writeByte(5)
       ..write(obj.subjects);
   }
 

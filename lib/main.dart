@@ -9,9 +9,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:med_exam_app/models/question.dart'; 
 import 'package:med_exam_app/models/topic.dart'; 
 import 'package:med_exam_app/models/student_class.dart'; 
-
+import 'package:med_exam_app/models/lecture.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   
   // ۱. مقداردهی اولیه Hive
   final appDocumentDir = await getApplicationDocumentsDirectory();
@@ -22,6 +23,7 @@ void main() async {
   Hive.registerAdapter(TopicAdapter());
   Hive.registerAdapter(SubjectAdapter()); 
   Hive.registerAdapter(StudentClassAdapter()); 
+  Hive.registerAdapter(LectureAdapter());
 
   runApp(const MyApp());
 }
@@ -32,7 +34,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'سیستم آزمون هوشمند',
+      title: 'سیستم آزمون پرتو',
       debugShowCheckedModeBanner: false,
       theme: appTheme,
       home: const SplashScreen(), // شروع از Splash Screen
